@@ -16,16 +16,16 @@ def print_board(s,board):
 	#print( the horizontal numbers
 	print("  ", end=' ')
 	for i in range(10):
-		print(" " + str(i+1), end=' ')
+		print("  " + str(i+1) + "  ", end=' ')
 	print()
 	
 	for i in range(10):
 	
 		#print( the vertical line number
 		if i != 9: 
-			print(str(i+1) + " ", end='')
+			print(str(i+1) + "    ", end='')
 		else:
-			print(str(i+1) + " ", end='')
+			print(str(i+1) + "   ", end='')
 
 		#print( the board values, and cell dividers
 		for j in range(10):
@@ -40,12 +40,13 @@ def print_board(s,board):
 					print(" ", end='')
 			
 			if j != 9:
-				print(" | ", end='')
+				print("  |  ", end='')
+			
 		print()
 		
 		#print( a horizontal line
 		if i != 9:
-			print("   ----------------------------------------------------------")
+			print("   -----------------------------------------------------------")
 		else: 
 			print()
 

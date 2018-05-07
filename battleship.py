@@ -7,6 +7,7 @@ def print_board(s,board):
 	#          layout. You have been warn. 
 
 	#find out if you are print(ing the computer or user board
+	print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 	player = "Computer"
 	if s == "u":
 		player = "User"
@@ -71,7 +72,7 @@ def user_place_ships(board,ships):
 		board = place_ship(board,ships[ship],ship[0],ori,x,y)
 		print_board("u",board)
 		
-	raw_input("Done placing user ships. Hit ENTER to continue")
+	input("Done placing user ships. Hit ENTER to continue")
 	return board
 
 

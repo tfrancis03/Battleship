@@ -149,7 +149,7 @@ def get_coor():
 			#see that user entered 2 values seprated by comma
 			coor = user_input.split(",")
 			if len(coor) != 2:
-				raise Exception("Invalid entry, too few/many coordinates.");
+				raise Exception("Invalid entry, too few/many coordinates.")
 
 			#check that 2 values are integers
 			coor[0] = int(coor[0])-1

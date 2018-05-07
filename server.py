@@ -2,34 +2,45 @@
 """Server for multithreaded (asynchronous) chat application."""
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
-
+import sys
 
 def accept_incoming_connections():
     """Sets up handling for incoming clients."""
+    playerId = 0
     while True:
+        # stop allowing new connections when two poeple have connected to server
         if(len(addresses) < 2):
             client, client_address = SERVER.accept()
             print("%s:%s has connected." % client_address)
             client.send(bytes("Welcome to Battleship! Now type your name and press enter!", "utf8"))
             addresses[client] = client_address
             print(len(addresses))
-            Thread(target=handle_client, args=(client,)).start()
+            Thread(target=handle_client, args=(client,playerId,)).start()
+            playerId += 1
 
 
-def handle_client(client):  # Takes client socket as argument.
+def handle_client(client, id):  # Takes client socket as argument.
     """Handles a single client connection."""
 
     name = client.recv(BUFSIZ).decode("utf8")
     clients[client] = name
-    welcome = 'Welcome %s! If you ever want to quit, type {quit} to exit.' % name
+    players[id] = name 
+    welcome = 'Welcome player %d, %s! If you ever want to quit, type {quit} to exit.' % (id, name)
     client.send(bytes(welcome, "utf8"))
     msg = "%s has joined the chat!" % name
     broadcast(bytes(msg, "utf8"))
 
+    global turn
     while True:
+
+        msg = "player %d \n turn" % turn
+        broadcast(bytes(msg, "utf8"))
         msg = client.recv(BUFSIZ)
-        if msg != bytes("{quit}", "utf8"):
+
+        if msg != bytes("{quit}", "utf8") and turn == id:
             broadcast(msg, name+": ")
+            turn += 1
+            turn %= 2
         else:
             client.send(bytes("{quit}", "utf8"))
             client.close()
@@ -47,7 +58,8 @@ def broadcast(msg, prefix=""):  # prefix is for name identification.
         
 clients = {}
 addresses = {}
-numClients = 0
+players = {}
+turn = 0
 
 HOST = ''
 PORT = 5000

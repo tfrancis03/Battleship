@@ -20,12 +20,12 @@ class Main:
             row=2, column=1, sticky=W+E)
 
         # Board object for Player
-        self.myBoard = Canvas(root, width=200, height=200)
-        self.myBoard.grid(row=3, column=0)
+        self.myCanvas = Canvas(root, width=220, height=220)
+        self.myCanvas.grid(row=3, column=0)
 
         # Board object for Enemey
-        self.enemyBoard = Canvas(root, width=200, height=200)
-        self.enemyBoard.grid(row=3, column=1)
+        self.enemyCanvas = Canvas(root, width=220, height=220)
+        self.enemyCanvas.grid(row=3, column=1)
 
         # Input Boxes for Player
         self.moveInput = Entry(root).grid(row=4, column=0, columnspan=2)
@@ -38,32 +38,53 @@ class Main:
     def drawBoards(self):
         self.drawSelf()
         self.drawEnemy()
+        self.drawBoardGuide()
 
     def drawEnemy(self):
-        for row in range(19):
-            for column in range(10):
+        for row in range(11):
+            for column in range(11):
                 size = 20
-                self.enemyBoard.create_rectangle(size * column,
+                self.enemyCanvas.create_rectangle(size * column,
                                                  size * row,
                                                  size * (column + 1),
                                                  size * (row + 1),
-                                                 fill='dark blue')
+                                                 fill='blue')
 
     def drawSelf(self):
-        for row in range(19):
-            for column in range(10):
+        for row in range(11):
+            for column in range(11):
                 size = 20
-                self.myBoard.create_rectangle(size * column,
+                #self.myCanvas.create_text(20, 30, anchor=W, font="Purisa",
+                #    text="A")
+                self.myCanvas.create_rectangle(size * column,
                                               size * row,
                                               size * (column + 1),
                                               size * (row + 1),
                                               fill='light blue')
 
+    def drawBoardGuide(self):
+        for i in range(10):
+            val = ord('A')
+            self.myCanvas.create_text(7, 20*i + 30, anchor=W, font="Purisa",
+                text=chr(val+i))
+            self.myCanvas.create_text(20*i + 25, 10, anchor=W, font="Purisa",
+                text=i+1)
+
+            self.enemyCanvas.create_text(7, 20*i + 30, anchor=W, font="Purisa",
+                text=chr(val+i))
+            self.enemyCanvas.create_text(20*i + 25, 10, anchor=W, font="Purisa",
+                text=i+1)
+
+    def updateMyBoard(self, board):
+        pass
+
+    def updateEnemyBoard(self, board):
+        pass
 
 root = Tk()
-root.geometry("400x300+300+300")
+root.geometry("450x350+300+300")
 style = ttk.Style()
-style.theme_use('classic')
+style.theme_use('alt')
 root.title('Battleship')
 
 app = Main(root)

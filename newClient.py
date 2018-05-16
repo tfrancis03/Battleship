@@ -28,12 +28,18 @@ class Main:
         self.enemyCanvas.grid(row=3, column=1)
 
         # Input Boxes for Player
-        self.moveInput = Entry(root).grid(row=4, column=0, columnspan=2)
-        self.submitMove = Button(root, text="Submit Move").grid(
+        self.moveInput = Entry(root)
+        self.moveInput.grid(row=4, column=0, columnspan=2)
+
+        self.submitMove = Button(root, text="Submit Move", command=self.insertMove).grid(
             row=5, column=0, columnspan=2)
 
         # draw player boards
         self.drawBoards()
+
+    def insertMove(self):
+        e = self.moveInput.get()
+        print(e)
 
     def drawBoards(self):
         self.drawSelf()

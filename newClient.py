@@ -82,10 +82,22 @@ class Main:
                 text=i+1)
 
     def updateMyBoard(self, board):
-        pass
+        self.drawSelf()
+        self.drawBoardGuide()
+        for ri, row in enumerate(board):
+            for ci, piece in enumerate(row):
+                self.myCanvas.create_text(
+                    20*ci + 26, 20*ri + 23, anchor=NW,
+                    font="Purisa", text=piece)
 
     def updateEnemyBoard(self, board):
-        pass
+        self.drawEnemy()
+        self.drawBoardGuide()
+        for ri, row in enumerate(board):
+            for ci, piece in enumerate(row):
+                self.myCanvas.create_text(
+                    20*ci + 26, 20*ri + 23, anchor=NW,
+                    font="Purisa", text=piece)
 
 root = Tk()
 root.geometry("450x350+300+300")
@@ -94,4 +106,6 @@ style.theme_use('alt')
 root.title('Battleship')
 
 app = Main(root)
+board = [['a','b','c','x'],['d','e','f'],['g','h','i']]
+app.updateMyBoard(board)
 root.mainloop()

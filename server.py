@@ -82,3 +82,18 @@ if __name__ == "__main__":
         ACCEPT_THREAD.join()
         SERVER.close()
         sys.exit()    
+
+'''
+1. Get Connections from two clients
+- assign id to each client
+2. Get an ACK from each client once setup is done
+- Get a copy of each player's board
+3. Enter Battle State 
+- Alternate inputs between clients
+- Get a coord move
+- Validate Move
+- Attack Other Player
+- Send Boards to Clients
+- Check if a win state has occured
+4. Win State
+'''

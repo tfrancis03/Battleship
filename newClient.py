@@ -50,6 +50,9 @@ class Main:
 
         self.submitMove = Button(root, text="Submit Move", command=self.insertMove).grid(
             row=6, column=0, columnspan=2)
+        
+        # Is player's turn
+        self.isTurn = True
 
         # draw player boards
         self.drawBoards()
@@ -70,12 +73,12 @@ class Main:
         entry = self.moveInput.get()
         print(entry)
 
-        
         #NEXT TIME TODO: Pass in current ship into self.validate on line 81
         
-
         if(self.gameState == GameState.Build and self.inputState == InputState.Coordinates):
             self.cord = self.getCord(entry)
+            
+                
             if(self.cord[0] != -1): 
                 self.message.set("Select the orientation of the ship (v, h)")
                 self.inputState = InputState.Orientation
@@ -92,12 +95,20 @@ class Main:
                 if(len(self.shipInventory) < 1):
                     self.message.set("BATTLE TIME! ENTER THOSE COORDINATES!")
                     self.gameState = GameState.Battle
+                    self.inputState = InputState.Coordinates
 
         # Elsewhere would change state from build to battle
-        else: # Battle State
+        elif self.gameState == GameState.Battle: # Battle State
             self.cord = self.getCord(entry)
+            if self.isTurn:
+                result = self.user_attack_phase()
+                self.updateEnemyBoard
+                #self.message.set("Be warned: Incoming enemy artillery")
+            else:
+                self.message.set("Oh, come on. It's not your turn.")
 
         self.moveInput.delete(0, 'end')
+
     def drawBoards(self):
         self.drawSelf()
         self.drawEnemy()
@@ -177,6 +188,68 @@ class Main:
                     20*ci + 26, 20*ri + 23, anchor=NW,
                     font="Purisa", text=tile)
     
+    def check_sink(self, board):
+        # figure out what ship was hit
+        x = self.cord[0]
+        y = self.cord[1]
+        if board[x][y] == "A":
+            ship = "Aircraft Carrier"
+        elif board[x][y] == "B":
+            ship = "Battleship"
+        elif board[x][y] == "S":
+            ship = "Submarine"
+        elif board[x][y] == "D":
+            ship = "Destroyer"
+        elif board[x][y] == "P":
+            ship = "Patrol Boat"
+
+        # mark cell as hit and check if sunk
+        board[-1][ship] -= 1
+        if board[-1][ship] == 0:
+            print(ship + " Sunk")
+
+    def attempt_attack(self):
+        board = self.enemyBoard
+        x = self.cord[0]
+        y = self.cord[1]
+        # make a move on the board and return the result, hit, miss or try again for repeat hit
+        if board[x][y] == -1:
+            return "miss"
+        elif board[x][y] == '*' or board[x][y] == '$':
+            return "try again"
+        else:
+            return "hit"
+
+    def user_attack_phase(self):
+        
+        # get coordinates from the user and try to make move
+        # if move is a hit, check ship sunk and win condition
+        board = self.enemyBoard
+        x = self.cord[0]
+        y = self.cord[1]
+        res = self.attempt_attack()
+        if res == "hit":
+            print("Hit at " + str(x+1) + "," + str(y+1))
+            check_sink(board, x, y)
+            board[x][y] = '$'
+            if check_win(board):
+                self.message.set("Victory! Victory! Victory!")
+                return "WIN"
+            else:
+                print("Enemy turn")
+        elif res == "miss":
+            print("Sorry, " + str(x+1) + "," + str(y+1) + " is a miss.")
+            print("Enemy turn")
+            self.message.set("Ya missed, bud. Now it's the enemy's turn.")
+            board[x][y] = "*"
+        elif res == "try again":
+            print("Sorry, that coordinate was already hit. Please try again")
+            self.message.set("Here's an idea, don't hit the same spot twice. Try again.")
+            self.user_attack_phase()
+
+        if res != "try again":
+            return board
+
     def validate(self, ori):
         if len(self.shipInventory) > 0:
             r = self.cord[0]
@@ -201,6 +274,7 @@ class Main:
     def getCord(self, user_input):
 
         while (True):
+                
                 OriginalCoor = list(user_input)
                 coor = ['0', '0']
                 #print(OriginalCoor)

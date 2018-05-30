@@ -2,6 +2,8 @@
 from tkinter import *
 from tkinter import ttk
 from enum import Enum     # for enum34, or the stdlib version
+from socket import AF_INET, socket, SOCK_STREAM
+from threading import Thread
 
 class InputState(Enum):
     Coordinates = 1
@@ -10,6 +12,7 @@ class InputState(Enum):
 class GameState(Enum):
     Build = 1
     Battle = 2
+    Connect = 3
 
 class Main:
 
@@ -29,7 +32,7 @@ class Main:
 
         # Client States
         self.inputState = InputState.Coordinates
-        self.gameState = GameState.Build
+        self.gameState = GameState.Connect
 
         # Board object for Player
         self.myCanvas = Canvas(root, width=220, height=220)
@@ -60,6 +63,9 @@ class Main:
         # storing the players board
         self.myBoard = [[-1 for x in range(10)] for y in range(10)]
         self.enemyBoard = [[-1 for x in range(10)] for y in range(10)]
+        self.client_socket = None
+        self.receive_thread = None
+        self.playerId = -1 
 
         # SHIPS
         self.shipList = {"Aircraft Carrier": 5,
@@ -68,6 +74,33 @@ class Main:
              "Destroyer": 3,
              "Patrol Boat": 2}
         self.shipInventory = ["Aircraft Carrier","Battleship","Submarine","Destroyer","Patrol Boat"]
+
+    def connectToServer(self, host, port):
+        addr = (host, port)
+        # Start Client Socket
+        self.client_socket = socket(AF_INET, SOCK_STREAM)
+        self.client_socket.connect(addr)
+
+        # Start the Thread for the Sever Messages
+        self.receive_thread = Thread(target=self.messagesFromServer)
+        self.receive_thread.start()
+
+    def messagesFromServer(self):
+        BUFSIZ = 1024
+        while True:
+            try:
+                msg = self.client_socket.recv(BUFSIZ).decode("utf8")
+                if(self.gameState == GameState.Connect): #Set the Player ID
+                    self.playerId = int(msg)+1
+                    self.gameState = GameState.Build
+                    print(self.playerId)
+
+            except OSError:  # Possibly client has left the chat.
+                break
+
+    def destroy(self):
+        self.client_socket.shutdown(1)
+        self.client_socket.close()
 
     def insertMove(self):
         entry = self.moveInput.get()
@@ -319,8 +352,12 @@ style = ttk.Style()
 style.theme_use('alt')
 root.title('Battleship')
 
+# Start Main Class
 app = Main(root)
-#board = [['a','b','c','x'],['d','e','f'],['g','h','i']]
 app.updateMyBoard(app.myBoard)
 app.updateEnemyBoard(app.enemyBoard)
+
+# Connect to Server
+app.connectToServer('',5000)
 root.mainloop()
+root.protocol("WM_DELETE_WINDOW", app.destroy)

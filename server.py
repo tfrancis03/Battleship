@@ -12,7 +12,7 @@ def accept_incoming_connections():
         if(len(addresses) < 2):
             client, client_address = SERVER.accept()
             print("%s:%s has connected." % client_address)
-            client.send(bytes("Welcome to Battleship! Now type your name and press enter!", "utf8"))
+            client.send(bytes(str(playerId), "utf8"))
             addresses[client] = client_address
             print(len(addresses))
             Thread(target=handle_client, args=(client,playerId,)).start()
@@ -81,42 +81,19 @@ if __name__ == "__main__":
         print("keyboard interrupt")
         ACCEPT_THREAD.join()
         SERVER.close()
-        sys.exit()
+        sys.exit()    
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
+'''
+1. Get Connections from two clients
+- assign id to each client
+2. Get an ACK from each client once setup is done
+- Get a copy of each player's board
+3. Enter Battle State 
+- Alternate inputs between clients
+- Get a coord move
+- Validate Move
+- Attack Other Player
+- Send Boards to Clients
+- Check if a win state has occured
+4. Win State
+'''

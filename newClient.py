@@ -44,6 +44,7 @@ class Main:
         self.messageLabel = Label(textvariable=self.message).grid(
             row=4, column=0, columnspan=2)
         self.moveInput = Entry(root)
+        self.moveInput.bind('<Return>',lambda event: self.insertMove())
         self.message.set("Please enter coordinates (ex: 3a,A6,5A)")
         self.moveInput.grid(row=5, column=0, columnspan=2)
 
@@ -57,25 +58,46 @@ class Main:
         self.myBoard = [[-1 for x in range(10)] for y in range(10)]
         self.enemyBoard = [[-1 for x in range(10)] for y in range(10)]
 
+        # SHIPS
+        self.shipList = {"Aircraft Carrier": 5,
+             "Battleship": 4,
+             "Submarine": 3,
+             "Destroyer": 3,
+             "Patrol Boat": 2}
+        self.shipInventory = ["Aircraft Carrier","Battleship","Submarine","Destroyer","Patrol Boat"]
+
     def insertMove(self):
         entry = self.moveInput.get()
         print(entry)
 
+        
+        #NEXT TIME TODO: Pass in current ship into self.validate on line 81
+        
+
         if(self.gameState == GameState.Build and self.inputState == InputState.Coordinates):
-            cord = self.getCord(entry)
-            if(cord[0] != -1): 
+            self.cord = self.getCord(entry)
+            if(self.cord[0] != -1): 
                 self.message.set("Select the orientation of the ship (v, h)")
                 self.inputState = InputState.Orientation
             else:
                 self.message.set("Invalid move.")
             
         elif(self.gameState == GameState.Build and self.inputState == InputState.Orientation):
-            oren = self.getOrientation(entry)
+                if self.validate(entry):
+                    self.myBoard = self.place_ship(entry)
+                    self.updateMyBoard(self.myBoard)
+                    self.inputState = InputState.Coordinates
+                    self.message.set("Please enter coordinates (ex: 3a,A6,5A)")
+
+                if(len(self.shipInventory) < 1):
+                    self.message.set("BATTLE TIME! ENTER THOSE COORDINATES!")
+                    self.gameState = GameState.Battle
 
         # Elsewhere would change state from build to battle
         else: # Battle State
-            cord = self.getCord(entry)
-    
+            self.cord = self.getCord(entry)
+
+        self.moveInput.delete(0, 'end')
     def drawBoards(self):
         self.drawSelf()
         self.drawEnemy()
@@ -103,9 +125,24 @@ class Main:
                                               size * (row + 1),
                                               fill='light blue')
 
+    def place_ship(self, ori):
+        r = self.cord[0]
+        c = self.cord[1]
+        length = self.shipList[self.shipInventory[0]]
+        # place ship based on orientation
+        if ori == "v":
+            for i in range(length):
+                self.myBoard[r+i][c] = self.shipInventory[0][0]
+        elif ori == "h":
+            for i in range(length):
+                self.myBoard[r][c+i] = self.shipInventory[0][0]
+
+        self.shipInventory.pop(0)
+        return self.myBoard
+
     def drawBoardGuide(self):
         for i in range(10):
-            val = ord('A')
+            val = ord('a')
             self.myCanvas.create_text(7, 20*i + 30, anchor=W, font="Purisa",
                 text=chr(val+i))
             self.myCanvas.create_text(20*i + 25, 10, anchor=W, font="Purisa",
@@ -121,21 +158,45 @@ class Main:
         self.drawBoardGuide()
         for ri, row in enumerate(board):
             for ci, piece in enumerate(row):
+                tile = piece
+                if(piece == -1):
+                    tile = "~"
                 self.myCanvas.create_text(
                     20*ci + 26, 20*ri + 23, anchor=NW,
-                    font="Purisa", text=piece)
+                    font="Purisa", text=tile)
 
     def updateEnemyBoard(self, board):
         self.drawEnemy()
         self.drawBoardGuide()
         for ri, row in enumerate(board):
             for ci, piece in enumerate(row):
-                self.myCanvas.create_text(
+                tile = piece
+                if(piece == -1):
+                    tile = "~"
+                self.enemyCanvas.create_text(
                     20*ci + 26, 20*ri + 23, anchor=NW,
-                    font="Purisa", text=piece)
+                    font="Purisa", text=tile)
     
-    def getOrientation(self, oren):
-        pass
+    def validate(self, ori):
+        if len(self.shipInventory) > 0:
+            r = self.cord[0]
+            c = self.cord[1]
+            length = self.shipList[self.shipInventory[0]]
+            if ori == "v" and r+length > 10:
+                return False
+            elif ori == "h" and c+length > 10:
+                return False
+            else:
+                if ori == "v":
+                    for i in range(length):
+                        if self.myBoard[r+i][c] != -1:
+                            return False
+                elif ori == "h":
+                    for i in range(length):
+                        if self.myBoard[r][c+i] != -1:
+                            return False
+                
+        return True
 
     def getCord(self, user_input):
 
@@ -185,6 +246,7 @@ style.theme_use('alt')
 root.title('Battleship')
 
 app = Main(root)
-board = [['a','b','c','x'],['d','e','f'],['g','h','i']]
-#app.updateMyBoard(board)
+#board = [['a','b','c','x'],['d','e','f'],['g','h','i']]
+app.updateMyBoard(app.myBoard)
+app.updateEnemyBoard(app.enemyBoard)
 root.mainloop()

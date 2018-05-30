@@ -62,8 +62,8 @@ class Main:
         print(entry)
 
         if(self.gameState == GameState.Build and self.inputState == InputState.Coordinates):
-            cord = self.getCord(entry)
-            if(cord[0] != -1): 
+            self.cord = self.getCord(entry)
+            if(self.cord[0] != -1): 
                 self.message.set("Select the orientation of the ship (v, h)")
                 self.inputState = InputState.Orientation
             else:
@@ -74,7 +74,7 @@ class Main:
 
         # Elsewhere would change state from build to battle
         else: # Battle State
-            cord = self.getCord(entry)
+            self.cord = self.getCord(entry)
     
     def drawBoards(self):
         self.drawSelf()

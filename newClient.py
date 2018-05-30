@@ -2,6 +2,8 @@
 from tkinter import *
 from tkinter import ttk
 from enum import Enum     # for enum34, or the stdlib version
+from socket import AF_INET, socket, SOCK_STREAM
+from threading import Thread
 
 class InputState(Enum):
     Coordinates = 1
@@ -10,6 +12,7 @@ class InputState(Enum):
 class GameState(Enum):
     Build = 1
     Battle = 2
+    Connect = 3
 
 class Main:
 
@@ -29,7 +32,7 @@ class Main:
 
         # Client States
         self.inputState = InputState.Coordinates
-        self.gameState = GameState.Build
+        self.gameState = GameState.Connect
 
         # Board object for Player
         self.myCanvas = Canvas(root, width=220, height=220)
@@ -44,6 +47,7 @@ class Main:
         self.messageLabel = Label(textvariable=self.message).grid(
             row=4, column=0, columnspan=2)
         self.moveInput = Entry(root)
+        self.moveInput.bind('<Return>',lambda event: self.insertMove())
         self.message.set("Please enter coordinates (ex: 3a,A6,5A)")
         self.moveInput.grid(row=5, column=0, columnspan=2)
 
@@ -56,10 +60,52 @@ class Main:
         # storing the players board
         self.myBoard = [[-1 for x in range(10)] for y in range(10)]
         self.enemyBoard = [[-1 for x in range(10)] for y in range(10)]
+        self.client_socket = None
+        self.receive_thread = None
+        self.playerId = -1 
+
+        # SHIPS
+        self.shipList = {"Aircraft Carrier": 5,
+             "Battleship": 4,
+             "Submarine": 3,
+             "Destroyer": 3,
+             "Patrol Boat": 2}
+        self.shipInventory = ["Aircraft Carrier","Battleship","Submarine","Destroyer","Patrol Boat"]
+
+    def connectToServer(self, host, port):
+        addr = (host, port)
+        # Start Client Socket
+        self.client_socket = socket(AF_INET, SOCK_STREAM)
+        self.client_socket.connect(addr)
+
+        # Start the Thread for the Sever Messages
+        self.receive_thread = Thread(target=self.messagesFromServer)
+        self.receive_thread.start()
+
+    def messagesFromServer(self):
+        BUFSIZ = 1024
+        while True:
+            try:
+                msg = self.client_socket.recv(BUFSIZ).decode("utf8")
+                if(self.gameState == GameState.Connect): #Set the Player ID
+                    self.playerId = int(msg)+1
+                    self.gameState = GameState.Build
+                    print(self.playerId)
+
+            except OSError:  # Possibly client has left the chat.
+                break
+
+    def destroy(self):
+        self.client_socket.shutdown(1)
+        self.client_socket.close()
 
     def insertMove(self):
         entry = self.moveInput.get()
         print(entry)
+
+        
+        #NEXT TIME TODO: Pass in current ship into self.validate on line 81
+        
 
         if(self.gameState == GameState.Build and self.inputState == InputState.Coordinates):
             self.cord = self.getCord(entry)
@@ -70,12 +116,21 @@ class Main:
                 self.message.set("Invalid move.")
             
         elif(self.gameState == GameState.Build and self.inputState == InputState.Orientation):
-            oren = self.getOrientation(entry)
+                if self.validate(entry):
+                    self.myBoard = self.place_ship(entry)
+                    self.updateMyBoard(self.myBoard)
+                    self.inputState = InputState.Coordinates
+                    self.message.set("Please enter coordinates (ex: 3a,A6,5A)")
+
+                if(len(self.shipInventory) < 1):
+                    self.message.set("BATTLE TIME! ENTER THOSE COORDINATES!")
+                    self.gameState = GameState.Battle
 
         # Elsewhere would change state from build to battle
         else: # Battle State
             self.cord = self.getCord(entry)
-    
+        self.moveInput.delete(0, 'end') # Clear Text Box after input
+
     def drawBoards(self):
         self.drawSelf()
         self.drawEnemy()
@@ -103,9 +158,24 @@ class Main:
                                               size * (row + 1),
                                               fill='light blue')
 
+    def place_ship(self, ori):
+        r = self.cord[0]
+        c = self.cord[1]
+        length = self.shipList[self.shipInventory[0]]
+        # place ship based on orientation
+        if ori == "v":
+            for i in range(length):
+                self.myBoard[r+i][c] = self.shipInventory[0][0]
+        elif ori == "h":
+            for i in range(length):
+                self.myBoard[r][c+i] = self.shipInventory[0][0]
+
+        self.shipInventory.pop(0)
+        return self.myBoard
+
     def drawBoardGuide(self):
         for i in range(10):
-            val = ord('A')
+            val = ord('a')
             self.myCanvas.create_text(7, 20*i + 30, anchor=W, font="Purisa",
                 text=chr(val+i))
             self.myCanvas.create_text(20*i + 25, 10, anchor=W, font="Purisa",
@@ -121,21 +191,45 @@ class Main:
         self.drawBoardGuide()
         for ri, row in enumerate(board):
             for ci, piece in enumerate(row):
+                tile = piece
+                if(piece == -1):
+                    tile = "~"
                 self.myCanvas.create_text(
                     20*ci + 26, 20*ri + 23, anchor=NW,
-                    font="Purisa", text=piece)
+                    font="Purisa", text=tile)
 
     def updateEnemyBoard(self, board):
         self.drawEnemy()
         self.drawBoardGuide()
         for ri, row in enumerate(board):
             for ci, piece in enumerate(row):
-                self.myCanvas.create_text(
+                tile = piece
+                if(piece == -1):
+                    tile = "~"
+                self.enemyCanvas.create_text(
                     20*ci + 26, 20*ri + 23, anchor=NW,
-                    font="Purisa", text=piece)
+                    font="Purisa", text=tile)
     
-    def getOrientation(self, oren):
-        pass
+    def validate(self, ori):
+        if len(self.shipInventory) > 0:
+            r = self.cord[0]
+            c = self.cord[1]
+            length = self.shipList[self.shipInventory[0]]
+            if ori == "v" and r+length > 10:
+                return False
+            elif ori == "h" and c+length > 10:
+                return False
+            else:
+                if ori == "v":
+                    for i in range(length):
+                        if self.myBoard[r+i][c] != -1:
+                            return False
+                elif ori == "h":
+                    for i in range(length):
+                        if self.myBoard[r][c+i] != -1:
+                            return False
+                
+        return True
 
     def getCord(self, user_input):
 
@@ -184,7 +278,12 @@ style = ttk.Style()
 style.theme_use('alt')
 root.title('Battleship')
 
+# Start Main Class
 app = Main(root)
-board = [['a','b','c','x'],['d','e','f'],['g','h','i']]
-#app.updateMyBoard(board)
+app.updateMyBoard(app.myBoard)
+app.updateEnemyBoard(app.enemyBoard)
+
+# Connect to Server
+app.connectToServer('',5000)
 root.mainloop()
+root.protocol("WM_DELETE_WINDOW", app.destroy)

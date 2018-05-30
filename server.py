@@ -12,7 +12,7 @@ def accept_incoming_connections():
         if(len(addresses) < 2):
             client, client_address = SERVER.accept()
             print("%s:%s has connected." % client_address)
-            client.send(bytes("Welcome to Battleship! Now type your name and press enter!", "utf8"))
+            client.send(bytes(str(playerId), "utf8"))
             addresses[client] = client_address
             print(len(addresses))
             Thread(target=handle_client, args=(client,playerId,)).start()
@@ -81,42 +81,4 @@ if __name__ == "__main__":
         print("keyboard interrupt")
         ACCEPT_THREAD.join()
         SERVER.close()
-        sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
+        sys.exit()    

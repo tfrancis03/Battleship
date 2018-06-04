@@ -40,7 +40,7 @@ def handle_client(client, id):  # Takes client socket as argument.
         msg = "player %d \n turn" % turn
         broadcast(bytes(msg, "utf8"))
         msg = client.recv(BUFSIZ)
-
+        print(msg)
         if msg != bytes("{quit}", "utf8") and turn == id:
             broadcast(msg, name+": ")
             turn += 1

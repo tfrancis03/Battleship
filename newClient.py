@@ -4,6 +4,7 @@ from tkinter import ttk
 from enum import Enum     # for enum34, or the stdlib version
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
+import json
 
 class InputState(Enum):
     Coordinates = 1
@@ -19,12 +20,20 @@ class Main:
     def __init__(self, master):
         # sets the window frame object
         self.frame = Frame(master)
+        
+        #Player ID
+        self.playerId = -1 
 
         # Labels for the screen
         self.welcomeLabel = Label(root, text="Welcome to Battleship!").grid(
             row=0, column=0, columnspan=2)
-        self.turnLabel = Label(root, text="Player X's Turn").grid(
+
+        # Set Top Message
+        self.topMessage = StringVar()
+        self.turnLabel = Label(root, textvariable=self.topMessage).grid(
             row=1, column=0, columnspan=2)
+        self.topMessage.set("Player " + str(self.playerId))
+
         self.myLabel = Label(root, text="Your Board").grid(
             row=2, column=0, sticky=W+E)
         self.enemyLabel = Label(root, text="Enemy Board").grid(
@@ -62,7 +71,6 @@ class Main:
         self.enemyBoard = [[-1 for x in range(10)] for y in range(10)]
         self.client_socket = None
         self.receive_thread = None
-        self.playerId = -1 
 
         # SHIPS
         self.shipList = {"Aircraft Carrier": 5,
@@ -87,13 +95,25 @@ class Main:
         while True:
             try:
                 msg = self.client_socket.recv(BUFSIZ).decode("utf8")
+                json_data = json.loads(msg)
+                self.playerId = int(json_data["playerId"])+1
                 if(self.gameState == GameState.Connect): #Set the Player ID
-                    self.playerId = int(msg)+1
                     self.gameState = GameState.Build
-                    print(self.playerId)
+                    self.topMessage.set("Player " + str(self.playerId))
+                    #print(self.playerId)
 
             except OSError:  # Possibly client has left the chat.
                 break
+
+    def sendToServer(self):
+        data = {}
+        data["playerId"] = self.playerId
+        data["myBoard"] = self.myBoard
+        data["enemyBoard"] = self.enemyBoard
+        data["attackCords"] = [0,0]
+        data["message"] = "MESSAGE"
+        json_data = json.dumps(data)
+        print(json_data)
 
     def destroy(self):
         self.client_socket.shutdown(1)
@@ -114,6 +134,7 @@ class Main:
                 self.inputState = InputState.Orientation
             else:
                 self.message.set("Invalid move.")
+            self.sendToServer()
             
         elif(self.gameState == GameState.Build and self.inputState == InputState.Orientation):
                 if self.validate(entry):

@@ -3,6 +3,7 @@
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 import sys
+import json
 
 def accept_incoming_connections():
     """Sets up handling for incoming clients."""
@@ -12,7 +13,10 @@ def accept_incoming_connections():
         if(len(addresses) < 2):
             client, client_address = SERVER.accept()
             print("%s:%s has connected." % client_address)
-            client.send(bytes(str(playerId), "utf8"))
+            data = {}
+            data["playerId"] = playerId
+            json_data = json.dumps(data)
+            client.send(bytes(str(json_data), "utf8"))
             addresses[client] = client_address
             print(len(addresses))
             Thread(target=handle_client, args=(client,playerId,)).start()

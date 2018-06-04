@@ -113,10 +113,11 @@ class Main:
         data["playerId"] = self.playerId
         data["myBoard"] = self.myBoard
         data["enemyBoard"] = self.enemyBoard
-        data["attackCords"] = [0,0]
+        data["attackCords"] = self.cord
         data["message"] = "MESSAGE"
         json_data = json.dumps(data)
-        print(json_data)
+        self.client_socket.send(bytes(str(json_data), "utf8"))
+        #print(json_data)
 
     def destroy(self):
         self.client_socket.shutdown(1)
@@ -137,7 +138,6 @@ class Main:
                 self.inputState = InputState.Orientation
             else:
                 self.message.set("Invalid move.")
-            self.sendToServer()
             
         elif(self.gameState == GameState.Build and self.inputState == InputState.Orientation):
                 if self.validate(entry):
@@ -155,8 +155,9 @@ class Main:
         elif self.gameState == GameState.Battle: # Battle State
             self.cord = self.getCord(entry)
             if self.isTurn:
-                result = self.user_attack_phase()
-                self.updateEnemyBoard
+                self.sendToServer()
+                #result = self.user_attack_phase()
+                #self.updateEnemyBoard
                 #self.message.set("Be warned: Incoming enemy artillery")
             else:
                 self.message.set("Oh, come on. It's not your turn.")

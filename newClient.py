@@ -130,14 +130,12 @@ class Main:
         
         if(self.gameState == GameState.Build and self.inputState == InputState.Coordinates):
             self.cord = self.getCord(entry)
-            
                 
             if(self.cord[0] != -1): 
                 self.message.set("Select the orientation of the ship (v, h)")
                 self.inputState = InputState.Orientation
             else:
                 self.message.set("Invalid move.")
-            self.sendToServer()
             
         elif(self.gameState == GameState.Build and self.inputState == InputState.Orientation):
                 if self.validate(entry):

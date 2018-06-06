@@ -9,6 +9,7 @@ from pprint import pprint
 class Game:
     def __init__(self):
         self.playerBoard = {} #map playerId to board
+        self.playerShips = {} # playerId -> ships -> shipCounts
         self.ready = [False, False]
         self.numPlayer = 2
         self.turn = 0
@@ -24,6 +25,45 @@ class Game:
         if(i == 1):
             return self.playerBoard[2]
         return self.playerBoard[1]
+
+    def validMove(self, playerId, move):
+        enemy = self.getEnemy(playerId)
+        tile = enemy[move[0]][move[1]]
+        if(tile == "$" or tile == "*"):
+            return False
+        return True
+
+    def isHit(self, playerId, move):
+        enemy = self.getEnemy(playerId)
+        tile = enemy[move[0]][move[1]]
+        if(tile == -1): #hit has occured
+            enemy[move[0]][move[1]] = "*" 
+            return tile
+        # decrement ship count for the player
+        self.playerShips[playerId][tile] -= 1
+        enemy[move[0]][move[1]] = "$" 
+        return tile
+
+    def checkSink(self, playerId, tile):
+        count = self.playerShips[playerId][tile]
+        if(count <= 0):
+            return True
+        return False
+
+    def parseShips(self, playerId):
+        print("Parsing ships..")
+        board = self.playerBoard[playerId]
+        self.playerShips[playerId] = {}
+        for row in board:
+            for piece in row:
+                # is piece in dictionary
+                if(piece not in self.playerShips[playerId]):
+                    self.playerShips[playerId][piece] = 1
+                    continue
+                # increment piece count
+                self.playerShips[playerId][piece] += 1
+        print("Parsed Ships")
+        pprint(self.playerShips)
 
 def accept_incoming_connections():
     """Sets up handling for incoming clients."""
@@ -45,15 +85,16 @@ def accept_incoming_connections():
 # Process moves from Sever
 def gameLogic(data):
     global game
+    # reading info from client
     state = data["gameState"]
     playerId = data["playerId"]
     move = data["attackCords"]
     player = data["myBoard"]
-    enemy = data["enemyBoard"]
 
     sendBack = {}
     if(state == "Ready"): #Set Each Player
         game.playerBoard[playerId] = player #set the current player board
+        game.parseShips(playerId)
         #game.ready[playerId-1] = True # player n is ready to start
         if(1 in game.playerBoard and 2 in game.playerBoard):
             sendBack["message"] = "Let the battle begin! Player 1's Turn"
@@ -65,15 +106,33 @@ def gameLogic(data):
         if(playerId != game.turn+1): #Prevent Other Player from Entering Move 
             # Not Your Turn 
             sendBack["message"] = "Not your turn %d" % playerId
-            clients[playerId-1].send(jsonToBytes(json.dumps(sendBack)))
+            clients[playerId-1].send(jsonToBytes(json.dumps(sendBack))) #only send message to person who's not turn it is
             return
         else: # Is it your turn
+            # game logic
+            # determine if move is new
+            if(not game.validMove(playerId, move)):
+                sendBack["message"] = "Not a valid move"
+                clients[playerId-1].send(jsonToBytes(json.dumps(sendBack)))
+                return
+            # determine hit or miss
+            # TODO: check when a ship is sunk
+            tile = game.isHit(playerId, move)
+            if( tile != -1): #will also update enemy board
+                sendBack["message"] = "Player %d hit " % playerId
+                if(game.checkSink(playerId, tile)):
+                    sendBack["message"] += "and sunk %s " % tile
+            else:
+                sendBack["message"] = "Player %d misses. " % playerId
+            sendBack["enemyBoard"] = game.getPlayer(playerId)
+            sendBack["myBoard"] = game.getEnemy(playerId)
             game.changeTurn()
-            sendBack["message"] = "Player %d's turn." % (game.turn+1)
+            sendBack["message"] += "Player %d's turn." % (game.turn+1)
 
     sendBack["playerId"] = game.turn + 1
+    sendBack = json.dumps(sendBack)
     pprint(sendBack)
-    broadcast(jsonToBytes(json.dumps(sendBack)))
+    broadcast(jsonToBytes(sendBack))
 
 # $ hit, * miss
 

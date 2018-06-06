@@ -140,7 +140,6 @@ class Main:
     def insertMove(self):
         entry = self.moveInput.get()
         #print(entry)
-        #NEXT TIME TODO: Pass in current ship into self.validate on line 81
         
         if(self.gameState == GameState.Build and self.inputState == InputState.Coordinates):
             self.cord = self.getCord(entry)

@@ -408,6 +408,7 @@ app.updateMyBoard(app.myBoard)
 app.updateEnemyBoard(app.enemyBoard)
 
 # Connect to Server
-app.connectToServer('',5000)
+ipAddress = ''
+app.connectToServer(ipAddress , 5000)
 root.mainloop()
 root.protocol("WM_DELETE_WINDOW", app.destroy)

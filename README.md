@@ -30,7 +30,7 @@ python3 server.py
 ```
 5. Open up `port 5000` on AWS instance in Security Groups
 - Click on Security Groups
-![Security Groups](/images/aws1.jpg)
+![Security Groups](/images/aws1.png)
 - In `Inbound` tab press edit button
 - Add custom tcp rule with port range `5000`
 - Under source select `Anywhere`then press `Save`

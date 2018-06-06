@@ -96,6 +96,8 @@ class Main:
         self.receive_thread = Thread(target=self.messagesFromServer)
         self.receive_thread.start()
 
+        self.gameState = GameState.Build 
+
     def messagesFromServer(self):
         BUFSIZ = 1024
         while True:
@@ -109,17 +111,31 @@ class Main:
                 break
 
     def handleMessageFromServer(self, data):
-        
+        player = data["playerId"]
         if("message" in data):
             msg = data["message"]
             self.message.set(msg)
             if("begin" in msg):
                 self.gameState = GameState.Battle
 
-        if(self.gameState == GameState.Connect):
+        if(self.gameState == GameState.Build ):
             self.playerId = int(data["playerId"])+1
             self.topMessage.set("Player " + str(self.playerId))
-            self.gameState = GameState.Ready
+            #self.gameState = GameState.Ready
+        elif(self.gameState == GameState.Battle):
+            myB = []
+            enemyB = []
+
+            if("myBoard" not in data or "enemyBoard" not in data):
+                return
+            if(player == self.playerId):
+                myB = data["myBoard"]
+                enemyB = data["enemyBoard"]
+            else:
+                enemyB = data["myBoard"]
+                myB = data["enemyBoard"]
+            self.updateMyBoard(myB)
+            self.updateEnemyBoard(enemyB)
 
     def sendToServer(self):
         data = {}
@@ -159,8 +175,8 @@ class Main:
                     self.message.set("Please enter coordinates (ex: 3a,A6,5A)")
 
                 if(len(self.shipInventory) < 1):
-                    self.message.set("BATTLE TIME! ENTER THOSE COORDINATES!")
-                    self.gameState = GameState.Battle
+                    self.message.set("Press Submit Move to Send Board to Server")
+                    self.gameState = GameState.Ready
                     self.inputState = InputState.Coordinates
 
         # Elsewhere would change state from build to battle
@@ -252,7 +268,7 @@ class Main:
         for ri, row in enumerate(board):
             for ci, piece in enumerate(row):
                 tile = piece
-                if(piece == -1):
+                if(piece == -1 or piece.isalpha()):
                     tile = "~"
                 self.enemyCanvas.create_text(
                     20*ci + 26, 20*ri + 23, anchor=NW,
@@ -401,12 +417,13 @@ root.title('Battleship')
 
 # Start Main Class
 app = Main(root)
-app.testBoard()
-app.updateMyBoard(app.myBoard)
-app.updateEnemyBoard(app.enemyBoard)
+#app.testBoard()
 
 # Connect to Server
 ipAddress = ''
 app.connectToServer(ipAddress , 5000)
+
+app.updateMyBoard(app.myBoard)
+app.updateEnemyBoard(app.enemyBoard)
 root.mainloop()
 root.protocol("WM_DELETE_WINDOW", app.destroy)

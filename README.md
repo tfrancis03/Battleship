@@ -29,8 +29,12 @@ git clone git@github.com:tfrancis03/Battleship.git
 python3 server.py
 ```
 5. Open up `port 5000` on AWS instance in Security Groups
-![Click on Security Groups](/images/aws1.jpg)
-![Add Custom TCP Rule with port 5000](/images/aws1.jpg)
+- Click on Security Groups
+![Security Groups](/images/aws1.jpg)
+- In `Inbound` tab press edit button
+- Add custom tcp rule with port range `5000`
+- Under source select `Anywhere`then press `Save`
+![Custom TCP Rule](/images/aws1.jpg)
 
 6. Clone Battleship on local machines
 7. Change `ipAdress` in `newClient.py` to the public ip addess of AWS instance
@@ -43,7 +47,7 @@ python newClient.py
 ```
 
 ---
-#Commands
+## Commands
 - Run Original 
 `python battleship2.py`
 

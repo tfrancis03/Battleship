@@ -5,6 +5,7 @@ from enum import Enum     # for enum34, or the stdlib version
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 import json
+from pprint import pprint
 
 class InputState(Enum):
     Coordinates = 1
@@ -14,6 +15,8 @@ class GameState(Enum):
     Build = 1
     Battle = 2
     Connect = 3
+    Ready = 4
+    GameOver = 5
 
 class Main:
 
@@ -98,15 +101,27 @@ class Main:
         while True:
             try:
                 msg = self.client_socket.recv(BUFSIZ).decode("utf8")
+                pprint(msg)
                 json_data = json.loads(msg)
-                self.playerId = int(json_data["playerId"])+1
-                if(self.gameState == GameState.Connect): #Set the Player ID
-                    self.gameState = GameState.Build
-                    self.topMessage.set("Player " + str(self.playerId))
-                    #print(self.playerId)
-
+                pprint(json_data)
+                self.handleMessageFromServer(json_data)
             except OSError:  # Possibly client has left the chat.
                 break
+
+    def handleMessageFromServer(self, data):
+        
+        if("message" in data):
+            msg = data["message"]
+            self.message.set(msg)
+            if("begin" in msg):
+                self.gameState = GameState.Battle
+
+        if(self.gameState == GameState.Connect):
+            self.playerId = int(data["playerId"])+1
+            self.topMessage.set("Player " + str(self.playerId))
+            self.gameState = GameState.Ready
+        elif(self.gameState == GameState.Connect): #Set the Player ID
+            self.gameState = GameState.Build
 
     def sendToServer(self):
         data = {}
@@ -115,6 +130,7 @@ class Main:
         data["enemyBoard"] = self.enemyBoard
         data["attackCords"] = self.cord
         data["message"] = "MESSAGE"
+        data["gameState"] = self.gameState.name
         json_data = json.dumps(data)
         self.client_socket.send(bytes(str(json_data), "utf8"))
         #print(json_data)
@@ -125,8 +141,7 @@ class Main:
 
     def insertMove(self):
         entry = self.moveInput.get()
-        print(entry)
-
+        #print(entry)
         #NEXT TIME TODO: Pass in current ship into self.validate on line 81
         
         if(self.gameState == GameState.Build and self.inputState == InputState.Coordinates):
@@ -160,6 +175,9 @@ class Main:
                 #self.message.set("Be warned: Incoming enemy artillery")
             else:
                 self.message.set("Oh, come on. It's not your turn.")
+        
+        elif (self.gameState == GameState.Ready):
+            self.sendToServer()
 
         self.moveInput.delete(0, 'end')
 
@@ -367,6 +385,16 @@ class Main:
                 print(coor)
                 return coor
 
+    def testBoard(self):
+        row = 0
+        col = 0
+        while(len(self.shipInventory) > 0):
+            self.cord = [row, col]
+            self.place_ship('v')
+            col += 1
+        self.gameState = GameState.Connect
+        self.message.set("Press Submit Move to Send Board to Server")
+
 root = Tk()
 root.geometry("450x400+300+300")
 style = ttk.Style()
@@ -375,6 +403,7 @@ root.title('Battleship')
 
 # Start Main Class
 app = Main(root)
+app.testBoard()
 app.updateMyBoard(app.myBoard)
 app.updateEnemyBoard(app.enemyBoard)
 

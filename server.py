@@ -4,6 +4,26 @@ from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 import sys
 import json
+from pprint import pprint
+
+class Game:
+    def __init__(self):
+        self.playerBoard = {} #map playerId to board
+        self.ready = [False, False]
+        self.numPlayer = 2
+        self.turn = 0
+
+    def changeTurn(self):
+        self.turn += 1
+        self.turn %= 2
+
+    def getPlayer(self, i):
+        return self.playerBoard[i]
+
+    def getEnemy(self, i):
+        if(i == 1):
+            return self.playerBoard[2]
+        return self.playerBoard[1]
 
 def accept_incoming_connections():
     """Sets up handling for incoming clients."""
@@ -22,41 +42,65 @@ def accept_incoming_connections():
             Thread(target=handle_client, args=(client,playerId,)).start()
             playerId += 1
 
+# Process moves from Sever
+def gameLogic(data):
+    global game
+    state = data["gameState"]
+    playerId = data["playerId"]
+    move = data["attackCords"]
+    player = data["myBoard"]
+    enemy = data["enemyBoard"]
+
+    sendBack = {}
+    if(state == "Ready"): #Set Each Player
+        game.playerBoard[playerId] = player #set the current player board
+        #game.ready[playerId-1] = True # player n is ready to start
+        if(1 in game.playerBoard and 2 in game.playerBoard):
+            sendBack["message"] = "Let the battle begin! Player 1's Turn"
+            game.turn = 0
+        else:
+            sendBack["message"] = "Both players are not ready to start"
+
+    elif(state == "Battle"):
+        if(playerId != game.turn+1): #Prevent Other Player from Entering Move 
+            # Not Your Turn 
+            sendBack["message"] = "Not your turn %d" % playerId
+            clients[playerId-1].send(jsonToBytes(json.dumps(sendBack)))
+            return
+        else: # Is it your turn
+            game.changeTurn()
+            sendBack["message"] = "Player %d's turn." % (game.turn+1)
+
+    sendBack["playerId"] = game.turn + 1
+    pprint(sendBack)
+    broadcast(jsonToBytes(json.dumps(sendBack)))
+
+# $ hit, * miss
+
+def jsonToBytes(json_data):
+    return bytes(str(json_data), "utf8")
 
 def handle_client(client, id):  # Takes client socket as argument.
     """Handles a single client connection."""
-
-    name = client.recv(BUFSIZ).decode("utf8")
-    clients[client] = name
-    players[id] = name 
-    welcome = 'Welcome player %d, %s! If you ever want to quit, type {quit} to exit.' % (id, name)
-    client.send(bytes(welcome, "utf8"))
-    msg = "%s has joined the chat!" % name
-    broadcast(bytes(msg, "utf8"))
-
     global turn
+    clients[id] = client
     while True:
 
-        msg = "player %d \n turn" % turn
-        broadcast(bytes(msg, "utf8"))
-        msg = client.recv(BUFSIZ)
-        print(msg)
-        if msg != bytes("{quit}", "utf8") and turn == id:
-            broadcast(msg, name+": ")
-            turn += 1
-            turn %= 2
+        msg = client.recv(BUFSIZ).decode("utf8")
+        data = json.loads(msg)
+        pprint(data)
+        if msg != bytes("{quit}", "utf8"):
+            gameLogic(data)
         else:
             client.send(bytes("{quit}", "utf8"))
             client.close()
             del clients[client]
-            broadcast(bytes("%s has left the chat." % name, "utf8"))
             break
-
 
 def broadcast(msg, prefix=""):  # prefix is for name identification.
     """Broadcasts a message to all the clients."""
-
-    for sock in clients:
+    global clients
+    for sock in clients.values():
         sock.send(bytes(prefix, "utf8")+msg)
 
         
@@ -72,6 +116,7 @@ ADDR = (HOST, PORT)
 
 SERVER = socket(AF_INET, SOCK_STREAM)
 SERVER.bind(ADDR)
+game = Game()
 
 if __name__ == "__main__":
     try:

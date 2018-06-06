@@ -120,8 +120,6 @@ class Main:
             self.playerId = int(data["playerId"])+1
             self.topMessage.set("Player " + str(self.playerId))
             self.gameState = GameState.Ready
-        elif(self.gameState == GameState.Connect): #Set the Player ID
-            self.gameState = GameState.Build
 
     def sendToServer(self):
         data = {}

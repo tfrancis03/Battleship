@@ -20,6 +20,7 @@ python newClient.py
 ## Run on AWS
 1. Launch an AWS instance [here](https://aws.amazon.com/getting-started/tutorials/launch-a-virtual-machine/?trk=gs_card)
 2. SSH into the AWS instance
+![Security Groups](/images/aws.png)
 3. Git clone Battleship Repo
 ```
 git clone git@github.com:tfrancis03/Battleship.git
@@ -34,7 +35,7 @@ python3 server.py
 - In `Inbound` tab press edit button
 - Add custom tcp rule with port range `5000`
 - Under source select `Anywhere`then press `Save`
-![Custom TCP Rule](/images/aws1.jpg)
+![Custom TCP Rule](/images/aws2.png)
 
 6. Clone Battleship on local machines
 7. Change `ipAdress` in `newClient.py` to the public ip addess of AWS instance
